@@ -3,15 +3,23 @@ session_start(); //开启试试
 set_time_limit(0);
 ignore_user_abort(true);
 require 'Model.class.php';
+require 'logconfig.php';
 
 class ChatServer1 extends Model{
 	
 	private $chatList=array();
+	private $log;
 	private $user;
 
 	public function __construct()
 	{
-
+		//引入日志
+		$this->log = Logger::getLogger(__CLASS__);
+	   //初始化消息总数
+	   if(!isset($_SESSION['messageCount']))
+	   {
+	      $_SESSION['messageCount']=0;
+	   }
 	   $this->action();
 	}
 	
@@ -149,23 +157,23 @@ class ChatServer1 extends Model{
 	 */
 	private function getMessage()
 	{  
-		   if(!isset($_SESSION['messageCount']))
-		   {
-		      $_SESSION['messageCount']=0;
-		   }
-		   $_SESSION['messageCount']=0;
-	       while (true)
+		   $this->log->info("获取群聊前总数:".$_SESSION['messageCount']."\n");
+	       while(true)
 	       {
 	       	   
 	       	   $sql="select m.id as mid,p1.nickname as sname,p1.headimg as simg,p1.id as p1id,p2.nickname as p2name,p2.id as p2id,m.content as content,m.addtime as addtime from message as m,persons as p1,persons p2 where m.sender=p1.id and m.receiver=p2.id and m.status=1 and m.receiver=3 order by m.id asc;";
 		       $list=parent::getAll($sql);
-			   if(count($list)>$_SESSION['messageCount'])
+		       //$i = rand(0,100); // 产生一个0-100之间的随机数  
+		       //$this->log->info("获取群聊信息查询SQL：".$sql."\n");
+		       $this->log->info("获取群聊总数：".count($list)."\n");
+               //if ($i > 20 && $i < 56)		
+               if(count($list)>$_SESSION['messageCount'])	   
 		       {
 		       	    $_SESSION['messageCount']=count($list);
-		            echo json_encode(array('status'=>1,'message'=>'成功获取信息列表','msglist'=>$list));
-				    break;
+		       	    $this->log->info("获取群聊后总数:".$_SESSION['messageCount']."\n");
+		            echo json_encode(array('status'=>1,'message'=>'成功获取信息列表','msglist'=>$list,'count'=>$_SESSION['messageCount']));
+				    exit();
 		       }
-		       usleep(100000);//间隔点
 	       }
 	}
 	
@@ -216,7 +224,8 @@ class ChatServer1 extends Model{
 	private function userExit()
 	{
 		session_destroy();
-		echo json_encode(array('status'=>1,'message'=>'加入失败！'));
+		exit();
+		//echo json_encode(array('status'=>1,'message'=>'加入失败！'));
 		/*
 		        //改变该用户状态为离线
 	            $user=$_SESSION['users']['nickname'];

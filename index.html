@@ -301,7 +301,7 @@ $(function(){
 			        type:'POST',
 			        data:{'action':'message'},
 			        dataType:'json',
-			        timeout:5000,
+			        timeout:8000,
 			        success:function(result)
 			        {
 			            if(result.status)
@@ -311,6 +311,7 @@ $(function(){
 			                     html+='<div class="message clearfix"><div class="user-logo"><img src=".'+v.simg+'"></div><div class="wrap-text"><h5 class="clearfix">'+v.sname+'</h5><div>'+v.content+'</div></div><div class="wrap-ri"><div clsss="clearfix"><span>'+v.addtime+'</span></div></div><div style="clear:both;"></div></div>';
 			                });
 			                $('.mes3').html(html);
+			                console.log(result.count);
 			                chatComet.SetBottom();
 			                chatComet.GetMessage();
 			            }
@@ -319,10 +320,12 @@ $(function(){
 			        {
 			             if(textStatus=='timeout')
 			             {
+				             console.log(textStatus);
 			            	 chatComet.GetMessage();
 				         }
 			             else
 			             {
+			            	 console.log(textStatus);
 			            	 chatComet.GetMessage();
 				         }
 			        }
