@@ -1,7 +1,8 @@
 <?php
 session_start(); //开启试试
 set_time_limit(0);
-ignore_user_abort(true);
+//ignore_user_abort(true);
+date_default_timezone_set("UTC");
 require 'Model.class.php';
 require 'logconfig.php';
 
@@ -20,6 +21,11 @@ class ChatServer1 extends Model{
 	   {
 	      $_SESSION['messageCount']=0;
 	   }
+	   //初始化用户列表
+	   if(!isset($_SESSION['usersCount']))
+	   {
+	      $_SESSION['usersCount']=0;
+	   }
 	   $this->action();
 	}
 	
@@ -37,7 +43,7 @@ class ChatServer1 extends Model{
 	   	  case 'addchat':
 	   	  	$this->addChat();
 	   	  	break;
-	   	  case 'list':
+	   	  case 'userlist':
 	   	  	$this->personList();
 	   	  	break;
 	   	  case 'message':
@@ -138,17 +144,27 @@ class ChatServer1 extends Model{
 	 */
 	private function personList()
 	{
-        $sql="select * from persons where 1=1 and status=1;";
-        $list=parent::getAll($sql);
-        if(!empty($list))
+        $data=array();
+        $i=0;
+        while(true)
         {
-            echo json_encode(array('status'=>1,'message'=>'成功获取列表','chatlist'=>$list));
-		    exit();
-        }
-        else
-        {
-            echo json_encode(array('status'=>0,'message'=>'获取列表失败'));
-		    exit();
+            usleep(500000);//0.5秒
+            $i++;
+            $sql="select * from persons where 1=1 and status=1;";
+            $list=parent::getAll($sql);
+            if($_SESSION['usersCount']<count($list))
+            {
+            	$_SESSION['usersCount']=count($list);
+            	$data=array('status'=>1,'message'=>'成功获取用户列表','chatlist'=>$list);
+                echo json_encode($data);
+            	exit();
+            }
+            if($i==2)
+            {
+	            $data=array('status'=>0,'message'=>'没有新用户加入');
+			    echo json_encode($data);
+	            exit();
+            }
         }
 	}
 	
@@ -157,24 +173,33 @@ class ChatServer1 extends Model{
 	 */
 	private function getMessage()
 	{  
-		   $this->log->info("获取群聊前总数:".$_SESSION['messageCount']."\n");
+		   $data=array();
+		   $i=0;
 	       while(true)
 	       {
-	       	   
+	       	   usleep(500000); //0.5秒
+	       	   $i++;
+	       	   $this->log->info("获取群聊前总数1:".$_SESSION['messageCount']."\n");
 	       	   $sql="select m.id as mid,p1.nickname as sname,p1.headimg as simg,p1.id as p1id,p2.nickname as p2name,p2.id as p2id,m.content as content,m.addtime as addtime from message as m,persons as p1,persons p2 where m.sender=p1.id and m.receiver=p2.id and m.status=1 and m.receiver=3 order by m.id asc;";
 		       $list=parent::getAll($sql);
-		       //$i = rand(0,100); // 产生一个0-100之间的随机数  
-		       //$this->log->info("获取群聊信息查询SQL：".$sql."\n");
-		       $this->log->info("获取群聊总数：".count($list)."\n");
-               //if ($i > 20 && $i < 56)		
-               if(count($list)>$_SESSION['messageCount'])	   
+		       $this->log->info("获取群聊总数2：".count($list)."\n");	
+               if($_SESSION['messageCount']<count($list))	   
 		       {
 		       	    $_SESSION['messageCount']=count($list);
-		       	    $this->log->info("获取群聊后总数:".$_SESSION['messageCount']."\n");
-		            echo json_encode(array('status'=>1,'message'=>'成功获取信息列表','msglist'=>$list,'count'=>$_SESSION['messageCount']));
-				    exit();
+		       	    $this->log->info("获取群聊后总数3:".$_SESSION['messageCount']."\n");
+		            $data=array('status'=>1,'message'=>'成功获取信息列表','msglist'=>$list,'count'=>$_SESSION['messageCount']);
+				    echo json_encode($data);
+	                exit();
+		       }
+		       if($i==2)
+		       {
+		       	   $data=array('status'=>0,'message'=>'群里没有新消息');
+                   echo json_encode($data);
+	               exit();
 		       }
 	       }
+
+	       
 	}
 	
 	/**

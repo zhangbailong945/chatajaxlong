@@ -294,6 +294,110 @@ $(function(){
 	});
 
 	var chatComet={
+			Init:function()  //初始化
+			{
+			    chatComet.CheckUser();			    		    			    
+			    //按钮事件
+			    $('#send').on('click',chatComet.SendMessage);
+				$('#quit').on('click',userExit);
+		    },
+			CheckUser:function() //检查用户
+			{
+				$.ajax({
+			        url:'./lib/ChatServer1.php',
+			        type:'POST',
+			        data:{'action':'user'},
+			        dataType:'json',
+			        success:function(result)
+			        {
+			            if(result.status)
+			            {   
+			            	chatComet.GetCurrentUser();   
+			            	chatComet.GetMessage();        
+			            }
+			            else
+			            {
+			            	chatComet.InputNickName();
+			            }
+			        },
+			        error:function(xhr)
+			        {
+			        	chatComet.InputNickName();
+			        }
+			        
+			     }); 
+		    },
+			InputNickName:function() //输入昵称
+			{
+				//访问主页，提示客户输入用户名
+				layui.use(['layer', 'form'], function(){
+			
+						layer.prompt({
+						  formType: 0,
+						  title: '请输入昵称!'
+						}, function(value, index, elem){
+						  var nickname=value;
+						  $.ajax({
+					         url:'./lib/ChatServer1.php',
+					         type:'POST',
+					         data:{'action':'addchat','nickname':value},
+					         dataType:'json',
+					         success:function(result)
+					         {
+					             if(result.status)
+					             {
+					                 layer.msg(result.message);
+					                 $('#current').html(result.data.nickname);
+					                 $('#sid').val(result.data.id);
+					                 chatComet.GetCurrentUser();
+					                 chatComet.GetUsers();
+					                 chatComet.GetMessage();
+					                 layer.close(index);
+					             }else
+					             {
+					            	 layer.msg(result.message);
+					             }
+					         },
+					         error:function(xhr)
+					         {
+					              layer.msg("错误提示:"+xhr.status+"->"+xhr.statusText);
+					         }
+					         
+					      });
+						  
+						});
+				});
+
+		    },
+		    GetCurrentUser:function()
+		    {
+		    	$.ajax({
+		            url:'./lib/ChatServer1.php',
+		            type:'POST',
+		            data:{'action':'user'},
+		            dataType:'json',
+		            success:function(result)
+		            {
+		                if(result.status)
+		                {   
+		                    var html='';
+		                    $('#current').html('<font color="blue">我('+result.data.nickname+')</font>,<font color="green">在线</font>.');
+		                    $('#sid').val(result.data.id);
+		                                 
+		                }
+		                else
+		                {
+                            console.log('getcurrentuser1'+result.status);
+			            }
+		                
+		            },
+		            error:function(xhr)
+		            {
+		                 console.log("GetCurrentUser2错误提示:"+xhr.status+"->"+xhr.statusText);
+		            }
+		            
+		         });
+			},
 			GetMessage:function() //获取群聊信息
 			{
 				$.ajax({
@@ -301,11 +405,13 @@ $(function(){
 			        type:'POST',
 			        data:{'action':'message'},
 			        dataType:'json',
-			        timeout:8000,
+			        timeout:4000, //设置超时为20秒
+			        cache:false,
 			        success:function(result)
 			        {
 			            if(result.status)
 			            {   
+				            console.log(result.status);
 			                var html='';
 			                $.each(result.msglist,function(k,v){
 			                     html+='<div class="message clearfix"><div class="user-logo"><img src=".'+v.simg+'"></div><div class="wrap-text"><h5 class="clearfix">'+v.sname+'</h5><div>'+v.content+'</div></div><div class="wrap-ri"><div clsss="clearfix"><span>'+v.addtime+'</span></div></div><div style="clear:both;"></div></div>';
@@ -314,31 +420,125 @@ $(function(){
 			                console.log(result.count);
 			                chatComet.SetBottom();
 			                chatComet.GetMessage();
+			                chatComet.GetUsers();
 			            }
+			            else
+			            {
+			            	console.log(result.message);
+			                chatComet.SetBottom();
+			                chatComet.GetMessage();
+			                chatComet.GetUsers();
+				        }
 			        },
 			        error:function(xhr,textStatus,errorThrown)
 			        {
 			             if(textStatus=='timeout')
 			             {
-				             console.log(textStatus);
+				             console.log(textStatus+'>>getmessge1');
 			            	 chatComet.GetMessage();
 				         }
 			             else
 			             {
-			            	 console.log(textStatus);
+			            	 console.log(textStatus+'>>getmessage2');
 			            	 chatComet.GetMessage();
 				         }
 			        }
 			        
 			     });
 			},
-			SetBottom:function() //低置群聊消息
+			GetUsers:function()
+		    {
+	        	$.ajax({
+	                url:'./lib/ChatServer1.php',
+	                type:'POST',
+	                data:{'action':'userlist'},
+	                dataType:'json',
+	                timeout:4000, //设置超时为20秒
+			        cache:false,
+	                success:function(result)
+	                {
+	                    if(result.status)
+	                    {   
+	                        var html='';
+	                        $.each(result.chatlist,function(k,v){
+	                             html+="<li><label class='online'></label><a href='javascript:;'><img src='."+v.headimg+"'></a><a href='javascript:;' class='chat03_name'>"+v.nickname+"</a></li>";
+	                        });
+	                        $('#online_person').html(html);
+	                        console.log(result.message);
+	                        chatComet.GetUsers();
+	                    }else
+	                    {
+	                   	   console.log(result.message);
+	                   	   chatComet.GetUsers();
+	                    }
+	                },
+	                error:function(xhr,textStatus,errorThrown)
+			        {
+			             if(textStatus=='timeout')
+			             {
+				             console.log(textStatus+'>>getusers1');
+				             chatComet.GetUsers();
+				         }
+			             else
+			             {
+			            	 console.log(textStatus+'>>getusers2');
+			            	 chatComet.GetUsers();
+				         }
+			        }
+	                
+	             });
+		    },
+		    SendMessage:function()
+		    {
+		    	   var content=$('#textarea').val(); //内容
+		    	   var sid=$('#sid').val(); //发送者
+		    	   var rid=3; //群聊
+		    	   if(sid!=0)
+		    	   {
+		    		   if(content.length>0)
+		    		   {
+		    			   $.ajax({
+		    			        url:'./lib/ChatServer1.php',
+		    			        type:'POST',
+		    			        data:{'action':'allchat','sid':sid,'rid':rid,'content':content},
+		    			        dataType:'json',
+		    			        success:function(result)
+		    			        {
+		    			            if(result.status)
+		    			            {   
+		    			            	$('#textarea').val("");	            	
+		    				            chatComet.GetMessage();
+		    			                chatComet.SetBottom();
+		    			            }else
+		    			            {
+		    			           	   console.log("SendMessage1"+result.message);
+		    			            }
+		    			        },
+		    			        error:function(xhr)
+		    			        {
+		    			             consolo.log("SendMessage2错误提示:"+xhr.status+"->"+xhr.statusText);
+		    			        }
+		    			        
+		    			     });
+		    		   }
+		    		   else
+		    		   {
+		    			   layer.msg('请输入聊天内容!');
+		    		   }
+		    	   }
+		    	   else
+		    	   {
+		    	       chatComet.InputNickName();
+		    	   }
+		    },
+			SetBottom:function() //置底群聊消息
 			{
 				$('.chat01_content').scrollTop($('.chat01_content')[0].scrollHeight);
 		    }
+		    
     };
     
-    chatComet.GetMessage();
+    chatComet.Init();
 
 });
 
